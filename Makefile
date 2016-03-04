@@ -273,5 +273,6 @@ tar:
 	mkdir -p /tmp/xv6
 	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev9.tar.gz  # the next one will be 9 (6/27/15)
-
+sh-test:
+	gcc -fno-builtin sh.c ulib.c umalloc.c printf.c -g -DLINUX_COMPAT=1 -o sh
 .PHONY: dist-test dist
