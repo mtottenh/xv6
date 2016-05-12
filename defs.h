@@ -9,6 +9,9 @@ struct spinlock;
 struct stat;
 struct superblock;
 
+// acpi.c
+int acpiinit(void);
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
