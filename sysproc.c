@@ -51,8 +51,10 @@ sys_sbrk(void)
   if(argint(0, &n) < 0)
     return -1;
   addr = proc->sz;
-  if(growproc(n) < 0)
-    return -1;
+  /* MIT xv6 HOMEWORK
+   * Lazy page allocation
+   */
+  proc->sz += n;
   return addr;
 }
 

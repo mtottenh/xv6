@@ -8,6 +8,10 @@
 #include "traps.h"
 #include "spinlock.h"
 
+// mappages - used for lazy page loading
+extern int
+mappages (pde_t*, void*, uint, uint, int);
+
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
@@ -77,7 +81,29 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-   
+  case T_PGFLT:
+    if (!(proc == 0 || (tf->cs&3) == 0)) {
+      /* MIT xv6 HOMEWORK
+       * Lazy page allocation
+       */
+      uint fault_addr = rcr2();
+      fault_addr = PGROUNDDOWN(fault_addr);
+      /* TODO: Check that the faulting addr is < proc->sz
+       * That is, check that we did actually allocate that address...
+       */
+      char* mem;
+      mem = kalloc();
+      if (mem == 0) {
+        /* OOM */
+        cprintf("Out of memory\n");
+        proc->killed = 1;
+        break ;
+      }
+      /* Probably not strictly nessecary */
+      memset(mem, 0, PGSIZE);
+      mappages(proc->pgdir, (char *)(fault_addr), PGSIZE, v2p(mem), PTE_W|PTE_U);
+      return ;
+    }
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){
