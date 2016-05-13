@@ -19,7 +19,7 @@ main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
   kvmalloc();      // kernel page table
-  acpiinit();      // Scan ACPI tables for now just dump them
+
   mpinit();        // collect info about this machine
   lapicinit();
   seginit();       // set up segments
@@ -28,6 +28,7 @@ main(void)
   ioapicinit();    // another interrupt controller
   consoleinit();   // I/O devices & their interrupts
   uartinit();      // serial port
+  acpiinit();      // Scan ACPI tables for now just dump them
   pinit();         // process table
   tvinit();        // trap vectors
   binit();         // buffer cache
