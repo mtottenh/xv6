@@ -2,6 +2,7 @@ OBJS = \
 	acpi.o \
 	bio.o\
 	console.o\
+	e1000.o \
 	exec.o\
 	file.o\
 	fs.o\
@@ -13,6 +14,7 @@ OBJS = \
 	log.o\
 	main.o\
 	mp.o\
+	pci.o\
 	picirq.o\
 	pipe.o\
 	proc.o\
@@ -217,7 +219,7 @@ endif
 QEMUOPTS = -enable-kvm -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 qemu: fs.img xv6.img
-	$(QEMU) -serial mon:stdio $(QEMUOPTS)
+	$(QEMU) $(QEMUOPTS)
 
 qemu-memfs: xv6memfs.img
 	$(QEMU) xv6memfs.img -smp $(CPUS) -m 256

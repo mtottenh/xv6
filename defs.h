@@ -11,7 +11,7 @@ struct superblock;
 
 // acpi.c
 int acpiinit(void);
-
+int pciinit(void);
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
