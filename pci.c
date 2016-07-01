@@ -38,6 +38,9 @@ int get_pci_info(int bus, int slot, int func) {
         cprintf("[PCI Device - 0x%x:0x%x]\n", vid, did);
         _find_device(&pci_drivers, vid, did);
         if (vid == INTEL_VID && did == INTEL_82540EM) {
+			uint32_t word = pci_read_word(bus,slot,func, 0x3C);
+
+			cprintf("[0x%x:0x%x INT PIN 0x%x INT Line 0x%x]", vid, did, (word & 0xFF), (word & 0xFF00) >> 8 );
             for (i = 0; i < 6; i++) {
                 uint32_t bar = pci_read_word(bus,slot,func,10+i*4);
                 cprintf("[0x%x:0x%x BAR%d - 0x%x]\n", vid, did, i, bar);
