@@ -45,7 +45,7 @@ int get_pci_info(int bus, int slot, int func) {
         p->device = did;
         p->irq_line = reg & 0xFF;
         for (i = 0; i < 6; i++) {
-            reg = pci_read_word(bus,slot,func,10+i*4);
+            reg = pci_read_word(bus,slot,func,0x10+i*4);
             p->base_addr_reg[i] = reg;
         }
         _find_device(&pci_drivers, vid, did, p);

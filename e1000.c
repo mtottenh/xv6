@@ -93,9 +93,14 @@ int attach_e1000 (struct pci_device *p) {
                     i, (p->base_addr_reg[i] & 0x6));
         
     }
-    p->io_base = p->base_addr_reg[2];
-    p->write_cmd = mmio_write_cmd;
-    p->read_cmd = mmio_read_cmd;
+    p->io_base = p->base_addr_reg[0] & 0xFFFFFFF0;
+    if (p->base_addr_reg[0] & 0x1) {
+        p->write_cmd = io_write_cmd;
+        p->read_cmd = io_read_cmd;
+    } else {
+        p->write_cmd = mmio_write_cmd;
+        p->read_cmd = mmio_read_cmd;
+    }
     int has_eeprom = detect_eeprom(p);
     if (has_eeprom) {
         cprintf("[Found EEPROM]\n");
