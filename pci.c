@@ -9,21 +9,23 @@
 LIST_HEAD(pci_drivers);
 
 
-static int pci_read_word(uint32_t bus, uint32_t dev, uint32_t func, uint8_t reg) {
+int pci_read_word(uint32_t bus, uint32_t dev, uint32_t func, uint8_t reg) {
     uint32_t config_addr = ((bus << 16) ) | ((dev << 11)) | ((func << 8)) | (reg & 0xfc) | ((uint32_t)0x80000000);
     outl(config_addr, PCI_CONFIG_IO);
     return inl(PCI_DATA_IO);
 }
 
-int _find_device(struct list_head* list, int vid, int did) {
+static int _find_device(struct list_head* list, int vid, int did, 
+                struct pci_device* p) {
     struct list_head* pos;
     struct pci_driver *dev;
     list_for_each( pos, list ) {
         dev = list_entry( pos, struct pci_driver, list );
         if (dev->vendor == vid && dev->device == did) {
-            cprintf("[Found driver!]\n");
+//            cprintf("[Found driver!]\n");
+            dev->attach(p);
         } else {
-            cprintf("[No Driver found :(]\n");
+//            cprintf("[No Driver found :(]\n");
         }
     }
     return 0;    
@@ -36,16 +38,17 @@ int get_pci_info(int bus, int slot, int func) {
     int i;
     if (vid != 0xFFFF) {
         cprintf("[PCI Device - 0x%x:0x%x]\n", vid, did);
-        _find_device(&pci_drivers, vid, did);
-        if (vid == INTEL_VID && did == INTEL_82540EM) {
-			uint32_t word = pci_read_word(bus,slot,func, 0x3C);
-
-			cprintf("[0x%x:0x%x INT PIN 0x%x INT Line 0x%x]", vid, did, (word & 0xFF), (word & 0xFF00) >> 8 );
-            for (i = 0; i < 6; i++) {
-                uint32_t bar = pci_read_word(bus,slot,func,10+i*4);
-                cprintf("[0x%x:0x%x BAR%d - 0x%x]\n", vid, did, i, bar);
-            }
+        struct pci_device *p = (struct pci_device*)kalloc();
+        memset(p,0,sizeof (struct pci_device));
+        reg = pci_read_word(bus,slot,func, 0x3C);
+        p->vendor = vid;
+        p->device = did;
+        p->irq_line = reg & 0xFF;
+        for (i = 0; i < 6; i++) {
+            reg = pci_read_word(bus,slot,func,10+i*4);
+            p->base_addr_reg[i] = reg;
         }
+        _find_device(&pci_drivers, vid, did, p);
     }
     return 0;
 }

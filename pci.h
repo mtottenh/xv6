@@ -13,6 +13,9 @@ struct pci_device {
     uint32_t base_addr_reg[6];
     uint32_t base_addr_size[6];
     uint8_t irq_line;
+    uint32_t io_base;
+    void (*write_cmd) (struct pci_device*, uint32_t, uint32_t);
+    uint32_t (*read_cmd) (struct pci_device*, uint32_t);
 };
 
 struct pci_driver {
