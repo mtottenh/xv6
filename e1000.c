@@ -3,62 +3,45 @@
 #include "defs.h"
 #include "x86.h"
 #include "pci.h"
+#include "e1000.h"
 extern struct list_head pci_drivers;
 extern int pci_read_word(uint32_t bus, uint32_t dev, uint32_t func, uint8_t reg);
-/*
- * legacy transmit descriptor format
- * Table 3-8 Intel software dev manual.
- * "
- * To select legacy mode operation, bit 29 (TDESC.DEXT) should be set to 0b. In
- * this case, the descriptor format is defined as shown in Table 3-8. The address
- * and length must be supplied by software. Bits in the command byte are optional,
- * as are the Checksum Offset (CSO), and Checksum Start (CSS) fields.
- * "
- */
-struct tx_desc
-{
-    uint64_t addr;
-    uint16_t length;
-    uint8_t cso;
-    uint8_t cmd;
-    uint8_t status;
-    uint8_t css;
-    uint16_t special;
-} __attribute__((packed));
+
+
+
 
 #define INTEL_VID 0x8086
 #define INTEL_82540EM 0x100e
     // Quick hack From inspection BAR0 is emulated as I/O
     // not MMIO, So for now lets just use that
     // Apparently BAR0 doesn't work.. Lets use BAR2 instead?
-void io_write_cmd(struct pci_device* d, uint32_t addr, uint32_t val) {
-    uint32_t io_base = d->base_addr_reg[0] & 0xFFFFFFF0;
+void io_write_cmd(uint32_t io_base, uint32_t addr, uint32_t val) {
     outl(io_base, addr);
     outl(io_base + 4, val);
 }
 
-uint32_t io_read_cmd(struct pci_device* d, uint32_t addr) {
-    uint32_t io_base = d->base_addr_reg[0] & 0xFFFFFFF0;
+uint32_t io_read_cmd(uint32_t io_base, uint32_t addr) {
     outl(io_base, addr);
     return inl(io_base + 4);
 }
 
-void mmio_write_cmd (struct pci_device* d, uint32_t addr, uint32_t val) {
-    volatile uint32_t *a = (uint32_t*) (d->io_base + addr);
+void mmio_write_cmd (uint32_t mmio_base, uint32_t addr, uint32_t val) {
+    volatile uint32_t *a = (uint32_t*) (mmio_base + addr);
     *a = val;
 }
 
-uint32_t mmio_read_cmd (struct pci_device* d, uint32_t addr) {
-    return *((volatile uint32_t *)(d->io_base + addr));
+uint32_t mmio_read_cmd (uint32_t mmio_base, uint32_t addr) {
+    return *((volatile uint32_t *)(mmio_base + addr));
 } 
 
 #define REG_EEPROM      0x0014
-int detect_eeprom(struct pci_device* d) {
+#define REG_MTA	0x5200
+uint32_t detect_eeprom(struct e1000_dev* d) {
     int has_eeprom = 0;
     int i;
-    d->write_cmd(d, REG_EEPROM, 0x1);
+    d->write_cmd(d->mmio_base, REG_EEPROM, 0x1);
     for (i = 0; i < 1000 && !has_eeprom; i++) {
-        uint32_t sts = d->read_cmd(d, REG_EEPROM);
+        uint32_t sts = d->read_cmd(d->mmio_base, REG_EEPROM);
         if (sts & 0x10) {
             has_eeprom = 1;
         }
@@ -66,12 +49,12 @@ int detect_eeprom(struct pci_device* d) {
     return has_eeprom;
 }
 #define RETRIES 1000
-int read_eeprom(struct pci_device* d, uint32_t addr) {
+uint16_t read_eeprom(struct e1000_dev* d, uint32_t addr) {
     uint32_t tmp = 0, i=0;
-    d->write_cmd(d, REG_EEPROM, 0x1 | addr << 8);
-    tmp = d->read_cmd(d, REG_EEPROM);
+    d->write_cmd(d->mmio_base, REG_EEPROM, 0x1 | addr << 8);
+    tmp = d->read_cmd(d->mmio_base, REG_EEPROM);
     while ( !((tmp & (1 << 4)) && i < RETRIES)  ) {
-        tmp = d->read_cmd(d, REG_EEPROM);
+        tmp = d->read_cmd(d->mmio_base, REG_EEPROM);
         i++;
     }
     if ( i < RETRIES ) {
@@ -93,27 +76,31 @@ int attach_e1000 (struct pci_device *p) {
                     i, (p->base_addr_reg[i] & 0x6));
         
     }
-    p->io_base = p->base_addr_reg[0] & 0xFFFFFFF0;
+	struct e1000_dev* e = (struct e1000_dev*)kalloc();
+	e->dev = p;
+    e->mmio_base = p->base_addr_reg[0] & 0xFFFFFFF0;
     if (p->base_addr_reg[0] & 0x1) {
-        p->write_cmd = io_write_cmd;
-        p->read_cmd = io_read_cmd;
+        e->write_cmd = io_write_cmd;
+        e->read_cmd = io_read_cmd;
     } else {
-        p->write_cmd = mmio_write_cmd;
-        p->read_cmd = mmio_read_cmd;
+        e->write_cmd = mmio_write_cmd;
+        e->read_cmd = mmio_read_cmd;
+		e->eeprom_read = read_eeprom;
+		e->detect_eeprom = detect_eeprom; 
     }
-    int has_eeprom = detect_eeprom(p);
+    int has_eeprom = e->detect_eeprom(e);
     if (has_eeprom) {
         cprintf("[Found EEPROM]\n");
-        uint16_t mac[6];
-        uint16_t tmp = read_eeprom(p, 0);
-        mac[0] = tmp & 0xFF;
-        mac[1] = tmp >> 8;
-        tmp = read_eeprom(p, 1);
-        mac[2] = tmp & 0xFF;
-        mac[3] = tmp >> 8;
-        tmp = read_eeprom(p, 2);
-        mac[4] = tmp & 0xFF;
-        mac[5] = tmp >> 8;
+        uint8_t mac[6];
+        uint16_t tmp = e->eeprom_read(e, 0);
+        e->mac[0] = tmp & 0xFF;
+        e->mac[1] = tmp >> 8;
+        tmp = e->eeprom_read(e, 1);
+        e->mac[2] = tmp & 0xFF;
+        e->mac[3] = tmp >> 8;
+        tmp = e->eeprom_read(e, 2);
+        e->mac[4] = tmp & 0xFF;
+        e->mac[5] = tmp >> 8;
         cprintf("[0x%x:0x%x MAC ", p->vendor, p->device);
         for (i = 0; i < 6; i++) {
             cprintf("%x",mac[i]);
@@ -129,6 +116,8 @@ int attach_e1000 (struct pci_device *p) {
 
 
 int e1000_tx_init() {
+
+
 /*
  *
  * 1. Allocate Transmit Descriptor List
@@ -139,12 +128,47 @@ int e1000_tx_init() {
  */
         return 0;
 }
+// TODO: Fill in from the manual
+#define REG_RAL 0
+#define REG_RAH	0
+#define REG_RDLEN 0 
+int e1000_rx_init(struct e1000_dev* d) {
 
-int e1000_rx_init() {
+	/* 
+	 * 1. Set Receive Address Register to MAC
+	 * 	- The upper bits of RAH contain some weird stuff...
+	 */
+	d->write_cmd(d->mmio_base, REG_RAL, *(uint32_t*)d->mac);
+	d->write_cmd(d->mmio_base, REG_RAH, *(uint16_t*)&d->mac[4]);
+
+	/* 
+	 * 2. Initialise MTA to 0
+	 */
+	int i;
+	for (i = 0; i < 128; i++) {
+		d->write_cmd(d->mmio_base, REG_MTA, 0);
+	}
+
+	/*
+	 * 5. Set up Receive descriptor list
+	 */
+	for (i = 0; i < NUM_DESCRIPTORS; i++) {
+		/* 
+		 * TODO: Handle < 4k allocations... there will be a tonne of
+		 * underutilized space here...
+		 * */
+		struct legacy_rx_desc* r = (struct legacy_rx_desc*)kalloc();
+		d->rx_desc[i] = r;
+		r->address = (uint32_t)kalloc(); 
+		r->status = 0;
+	}
+
+	/* 
+	 * 6. Set RDLEN
+	 */
+   	 d->write_cmd(d->mmio_base, REG_RDLEN, NUM_DESCRIPTORS * 16);	
 /*
- * 1. Receive Address Register (RAL/RAH) must be set to the MAC addr
- *          - This is found somewhere in the EEPROM
- * 2. Initialize MTA to 0b
+ * 
  * 3. Program the Interrupt Mask Set/Read (IMS) register to enable any
  *    interrupt the software driver wants to be notified of when the event occurs.
  *    Suggested bits include RXT, RXO, RXDMT, RXSEQ, and LSC. There is no immediate
