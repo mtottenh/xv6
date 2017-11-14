@@ -1,8 +1,8 @@
-#include "types.h"
-#include "defs.h"
-#include "x86.h"
-#include "memlayout.h"
-#include "pci.h"
+#include <types.h>
+#include <defs.h>
+#include <x86.h>
+#include <memlayout.h>
+#include <pci.h>
 
 #define INTEL_VID 0x8086
 #define INTEL_82540EM 0x100e

@@ -1,13 +1,13 @@
-#include "types.h"
-#include "defs.h"
-#include "param.h"
-#include "memlayout.h"
-#include "mmu.h"
-#include "proc.h"
-#include "x86.h"
-#include "traps.h"
-#include "spinlock.h"
-
+#include <types.h>
+#include <defs.h>
+#include <param.h>
+#include <memlayout.h>
+#include <mmu.h>
+#include <proc.h>
+#include <x86.h>
+#include <traps.h>
+#include <spinlock.h>
+#include <net.h>
 // mappages - used for lazy page loading
 extern int
 mappages (pde_t*, void*, uint, uint, int);
@@ -81,6 +81,10 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_IRQ0 + IRQ_NIC:
+	netintr(tf->trapno);
+	lapiceoi();
+	break;
   case T_PGFLT:
     if (!(proc == 0 || (tf->cs&3) == 0)) {
       /* MIT xv6 HOMEWORK
