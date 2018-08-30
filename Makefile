@@ -14,6 +14,7 @@ OBJS = \
 	log.o\
 	main.o\
 	mp.o\
+	net.o\
 	pci.o\
 	picirq.o\
 	pipe.o\
@@ -23,6 +24,7 @@ OBJS = \
 	swtch.o\
 	syscall.o\
 	sysfile.o\
+	sysnet.o \
 	sysproc.o\
 	timer.o\
 	trapasm.o\
@@ -178,7 +180,8 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_hello \
-	_date  
+	_date \
+    _ethping	
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
 
@@ -216,7 +219,9 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 ifndef CPUS
 CPUS := 2
 endif
-QEMUOPTS = -enable-kvm -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
+
+QEMUOPTS =  -hdb fs.img xv6.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
+
 
 qemu: fs.img xv6.img
 	$(QEMU) $(QEMUOPTS)

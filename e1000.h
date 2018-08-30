@@ -25,15 +25,15 @@ struct tx_ring_regs {
  * and length must be supplied by software. Bits in the command byte are optional,
  * as are the Checksum Offset (CSO), and Checksum Start (CSS) fields.
  * "
+ * TOTAL_SIZE: 16 Bytes
  */
 struct legacy_tx_desc 
 {
-    uint64_t addr;  //Address of the Buffer/Frame to transmit in the host memory
+    uint64_t address;  //Address of the Buffer/Frame to transmit in the host memory
     uint16_t length; // One ethernet frame ~1500 bytes
     uint8_t cso;  // Checksum Offset
-    uint8_t cmd;  //Command field
-    uint8_t status; //Status field
-	uint8_t reserved; //reserved field (set to 0)
+    uint8_t cmd;
+	uint8_t status_reserved;  //Command field
     uint8_t css; //Checksum Start Field
     uint16_t special; //Special Field
 } __attribute__((packed));
@@ -58,13 +58,20 @@ struct tcp_ip_ctxt_tx_desc_0 {
 	uint16_t mss;
 } __attribute__((packed));
 */
-
+/*
+ * TOTAL SIZE: 16 - BYTES
+ */
 struct legacy_rx_desc {
-	uint32_t address;
-	uint32_t status;
+	uint64_t address;
+	uint16_t length;
+	uint16_t checksum;
+	uint8_t status;
+	uint8_t errors;
+	uint16_t special;
 }__attribute__((packed));
 
 struct e1000_dev {
+    /* TODO: The following two fields can really be unified*/
 	uint32_t mmio_base;
 	uint32_t io_base;
 	struct pci_device* dev;
@@ -73,6 +80,8 @@ struct e1000_dev {
     uint32_t (*read_cmd) (uint32_t, uint32_t);
 	uint16_t (*eeprom_read) (struct e1000_dev*, uint32_t);
 	uint32_t (*detect_eeprom) (struct e1000_dev*);
+	volatile uint8_t* tx_desc_base;
+	volatile uint8_t* rx_desc_base;
 	volatile struct legacy_tx_desc* tx_desc[NUM_DESCRIPTORS];
 	volatile struct legacy_rx_desc* rx_desc[NUM_DESCRIPTORS];
 };

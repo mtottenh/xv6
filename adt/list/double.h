@@ -9,6 +9,10 @@
 /*
  * Copy of offsetof from include/linux/stddef.h
  */
+#ifndef size_t
+typedef unsigned long int size_t;
+#endif
+
 #undef offsetof
 #ifdef __compiler_offsetof
 #define offsetof(TYPE,MEMBER) __compiler_offsetof(TYPE,MEMBER)

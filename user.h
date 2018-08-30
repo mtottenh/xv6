@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 int hello(void);
 int date(struct rtcdate*);
+int xmit_packet(char*,int);
 // ulib.c
 int stat(char*, struct stat*);
 char* strcpy(char*, char*);
