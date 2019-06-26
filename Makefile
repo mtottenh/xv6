@@ -220,7 +220,7 @@ ifndef CPUS
 CPUS := 2
 endif
 
-QEMUOPTS =  -hdb fs.img xv6.img -smp $(CPUS) -m 512 -netdev tap,id=mynet0 -device e1000,netdev=mynet0 -object filter-dump,id=f1,netdev=mynet0,file=vm.pcap  $(QEMUEXTRA)
+QEMUOPTS =  -hdb fs.img xv6.img -smp $(CPUS) -m 512  $(QEMUEXTRA)
 
 
 qemu: fs.img xv6.img
