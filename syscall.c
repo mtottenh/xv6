@@ -101,6 +101,7 @@ extern int sys_uptime(void);
 extern int sys_hello(void);
 extern int sys_date(void);
 extern int sys_xmit_packet(void);
+extern int sys_get_mac(void);
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -126,6 +127,7 @@ static int (*syscalls[])(void) = {
 [SYS_hello]   sys_hello,
 [SYS_date]    sys_date,
 [SYS_xmit_packet] sys_xmit_packet,
+[SYS_get_mac] sys_get_mac,
 };
 /*
 static char* syscall_str[] = {

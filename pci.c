@@ -15,6 +15,14 @@ int pci_read_word(uint32_t bus, uint32_t dev, uint32_t func, uint8_t reg) {
     return inl(PCI_DATA_IO);
 }
 
+void pci_write_word(uint32_t bus, uint32_t dev, uint32_t func, uint32_t reg, uint32_t val) {
+
+    uint32_t config_addr =  ((bus << 16) ) | ((dev << 11)) | ((func << 8)) | (reg & 0xfc) | ((uint32_t)0x80000000);
+
+     outl(config_addr, PCI_CONFIG_IO);
+     outl(val, PCI_DATA_IO);
+}
+
 static int _find_device(struct list_head* list, int vid, int did, 
                 struct pci_device* p) {
     struct list_head* pos;
@@ -44,6 +52,9 @@ int get_pci_info(int bus, int slot, int func) {
         p->vendor = vid;
         p->device = did;
         p->irq_line = reg & 0xFF;
+        p->bus = bus;
+        p->dev = slot;
+        p->func = func;
         for (i = 0; i < 6; i++) {
             reg = pci_read_word(bus,slot,func,0x10+i*4);
             p->base_addr_reg[i] = reg;

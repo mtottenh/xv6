@@ -1,3 +1,4 @@
+#include "types.h"
 struct buf;
 struct context;
 struct file;
@@ -88,6 +89,12 @@ void            initlog(int dev);
 void            log_write(struct buf*);
 void            begin_op();
 void            end_op();
+
+//net.c
+uint32_t htonl(uint32_t hostlong);
+uint16_t htons(uint16_t hostshort);
+uint32_t ntohl(uint32_t netlong);
+uint16_t ntohs(uint16_t netshort);
 
 // mp.c
 extern int      ismp;

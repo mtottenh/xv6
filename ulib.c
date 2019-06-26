@@ -103,3 +103,77 @@ memmove(void *vdst, void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+uint32_t htonl(uint32_t hostlong) {
+    uint8_t  data[4] = {0};
+    memmove(data, &hostlong, 4);
+    return (  ((uint32_t) data[0] << 24)
+            | ((uint32_t) data[1] << 16)
+            | ((uint32_t) data[2] << 8)
+            |  (uint32_t) data[3]);
+
+}
+uint16_t htons(uint16_t hostshort) {
+    uint8_t  data[2] = {0};
+    memmove(data, &hostshort, 2);
+    return (  ((uint32_t) data[0] << 8)
+            | ((uint32_t) data[1]));
+}
+uint32_t ntohl(uint32_t netlong) {
+    return htonl(netlong);
+//    uint8_t data[4] = {0};
+//    memmove(data, &netlong, 4);
+//    return (data[3]<<0) | (data[2]<<8) | (data[1]<<16) | (data[0]<<24);
+
+}
+uint16_t ntohs(uint16_t netshort) {
+    return htons(netshort);
+}
+
+uint32_t inet_aton(char* cp) {
+int dots = 0;
+    register unsigned long acc = 0, addr = 0;
+
+    do {
+	register char cc = *cp;
+
+	switch (cc) {
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+	    acc = acc * 10 + (cc - '0');
+	    break;
+
+	case '.':
+	    if (++dots > 3) {
+		return 0;
+	    }
+	    /* Fall through */
+
+	case '\0':
+	    if (acc > 255) {
+		return 0;
+	    }
+	    addr = addr << 8 | acc;
+	    acc = 0;
+	    break;
+
+	default:
+	    return 0;
+	}
+    } while (*cp++) ;
+
+    /* Normalize the address */
+    if (dots < 3) {
+	addr <<= 8 * (3 - dots) ;
+    }
+
+    return htonl(addr);
+}
+

@@ -23,3 +23,4 @@
 #define SYS_hello  22
 #define SYS_date   23
 #define SYS_xmit_packet 24
+#define SYS_get_mac 25
