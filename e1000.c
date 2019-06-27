@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "x86.h"
 #include "traps.h"
+#include "spinlock.h"
 #include "pci.h"
 #include "net.h"
 #include "e1000.h"
@@ -16,6 +17,7 @@ extern int pci_read_word(uint32_t bus, uint32_t dev, uint32_t func, uint8_t reg)
 int e1000_rx_init(struct e1000_dev* d);
 int e1000_tx_init(struct e1000_dev* d);
 int e1000_tx(struct net_dev *d, void* data, size_t len); 
+int e1000_rx(struct net_dev *d, void* data, size_t len); 
 volatile struct legacy_tx_desc tx_desc[NUM_DESCRIPTORS] __attribute__((aligned(16))) = { 0 };
 volatile struct legacy_rx_desc rx_desc[NUM_DESCRIPTORS]  __attribute__((aligned(16))) = { 0 };
 struct pkt_buf rx_buf[NUM_DESCRIPTORS]  __attribute__((aligned(16))) = { 0 };
@@ -136,6 +138,23 @@ int e1000_tx(struct net_dev *n, void* data, size_t len) {
 
     return 0;
 }
+static struct spinlock e1000lock;
+
+int e1000_rx(struct net_dev *n, void* data, size_t len) {
+    cprintf("[ e1000 ]: rx()\n");
+    struct e1000_dev* d = (struct e1000_dev *)(n->dev);
+    acquire(&e1000lock); 
+    uint32_t tail;
+    do {
+        tail = d->read_cmd(d->mmio_base, REG_RDT);
+        if (rx_desc[tail].status == 0) {
+            cprintf("[ e1000 ]: tail descriptor status is 0. blocking\n");
+            sleep(d,&e1000lock);
+        }
+    }  while (rx_desc[tail].status == 0); 
+    release(&e1000lock);
+    return 0;
+}
 
 void e1000_handle_interrupt(struct net_dev* n, int intr) {
     struct e1000_dev *d = (struct e1000_dev*) (n->dev);
@@ -221,6 +240,7 @@ int attach_e1000 (struct pci_device *p) {
 	n->tx_poll = e1000_tx_poll;
 	n->rx_poll = e1000_rx_poll;
     n->net_xmit = e1000_tx;
+    n->net_recv = e1000_rx;
 	n->intr_handler = e1000_handle_interrupt;
 
 	n->irq_line = p->irq_line;
@@ -352,6 +372,7 @@ int e1000_rx_init(struct e1000_dev* d) {
 int e1000_init(void) {
     struct pci_driver *dev;
     dev = (struct pci_driver*)kalloc(); //if struct pci_driver grows beyond a page WE IN TROUBLE :0
+    initlock(&e1000lock, "e1000");
     memset(dev, 0, sizeof (struct pci_driver));
     dev->attach = attach_e1000;
     dev->vendor = INTEL_VID;

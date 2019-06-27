@@ -24,3 +24,4 @@
 #define SYS_date   23
 #define SYS_xmit_packet 24
 #define SYS_get_mac 25
+#define SYS_recv_packet 26

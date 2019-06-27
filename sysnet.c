@@ -38,6 +38,22 @@ sys_xmit_packet(void)
 	return 0;
 };
 
+int sys_recv_packet(void) {
+	unsigned char* buf, *name;
+	int i;
+	if (argint(2, &i) < 0) {
+		return -1;
+	}
+	if (argptr(1, (void*)&buf, sizeof(char*)) < 0) {
+		return -1;
+	}
+    if (argptr(0, (void*)&name, sizeof(char*)) < 0) {
+        return -1;
+    }
+    net_recv(name, buf, i);
+    return 0;
+}
+
 int sys_get_mac(void)
 {
         char *name;

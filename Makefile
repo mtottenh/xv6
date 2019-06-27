@@ -162,8 +162,6 @@ mkfs: mkfs.c fs.h
 .PRECIOUS: %.o
 
 UPROGS=\
-	_nullptr\
-	_oom\
 	_cat\
 	_echo\
 	_forktest\

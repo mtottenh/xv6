@@ -26,6 +26,7 @@ int uptime(void);
 int hello(void);
 int date(struct rtcdate*);
 int xmit_packet(char*, char*,int);
+int recv_packet(char*, char*, int);
 int get_mac(char*, unsigned char*);
 // ulib.c
 int stat(char*, struct stat*);

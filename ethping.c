@@ -36,13 +36,23 @@ main(int argc, char* argv[])
     struct arp_ipv4_hdr *i = (struct arp_ipv4_hdr*)a->data;
     memmove(i->shwaddr, mac, 6);
     memmove(i->dhwaddr, ETHER_BCAST_ADDR, 6);
-    i->sipaddr = inet_aton("192.168.122.3");
-    i->dipaddr = inet_aton("255.255.255.255");
+    i->sipaddr = inet_aton("10.0.2.15");
+    if (argc == 2) {
+        i->dipaddr = inet_aton(argv[1]);
+    } else {
+        i->dipaddr = inet_aton("10.0.2.255");
+    }
 	printf(1, "Calling xmit_packet\n");	
- for (int i = 0; i < 128; i++) {
+
 	if(xmit_packet("eth0", packet_buff, MIN_ETHER_SIZE)) {
 		printf(1,"Bad Arg\n");
 	}
- }
+
+    printf(1, "Calling recv_packet\n");
+
+    memset(packet_buff, 0, MIN_ETHER_SIZE);
+    if(recv_packet("eth0", packet_buff, MIN_ETHER_SIZE)) {
+        printf(1, "Bad Arg\n");
+    }
 	exit();
 }

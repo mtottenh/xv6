@@ -14,6 +14,16 @@ void net_xmit(unsigned char* devname, void* data, size_t i) {
         }
     }
 }
+void net_recv(unsigned char* devname, void* data, size_t i) {
+    struct list_head *pos;
+    struct list_head* list = &nic_dev;
+    list_for_each(pos, list) {
+        struct net_dev* dev =list_entry(pos, struct net_dev, list);
+        if (strncmp(dev->name, (const char*) devname,4) == 0) {
+            dev->net_recv(dev, data, i);
+        }
+    }
+}
 int
 net_get_mac(char* devname, unsigned char* destbuf) {
     struct list_head *pos;
