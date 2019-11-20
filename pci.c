@@ -30,10 +30,12 @@ static int _find_device(struct list_head* list, int vid, int did,
     list_for_each( pos, list ) {
         dev = list_entry( pos, struct pci_driver, list );
         if (dev->vendor == vid && dev->device == did) {
-//            cprintf("[Found driver!]\n");
+            pci_write_word(p->bus, p->dev, p->func, PCI_COMMAND_STATUS_REG,
+                    ( PCI_COMMAND_IO_ENABLE 
+                      | PCI_COMMAND_MEM_ENABLE 
+                      | PCI_COMMAND_MASTER_ENABLE));
             dev->attach(p);
         } else {
-//            cprintf("[No Driver found :(]\n");
         }
     }
     return 0;    

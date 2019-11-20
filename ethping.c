@@ -40,7 +40,7 @@ main(int argc, char* argv[])
     if (argc == 2) {
         i->dipaddr = inet_aton(argv[1]);
     } else {
-        i->dipaddr = inet_aton("10.0.2.255");
+        i->dipaddr = inet_aton("10.0.2.2");
     }
 	printf(1, "Calling xmit_packet\n");	
 

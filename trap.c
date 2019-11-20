@@ -82,6 +82,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_NIC:
+    cprintf("nic intr\n");
 	netintr(tf->trapno - T_IRQ0);
 	lapiceoi();
 	break;

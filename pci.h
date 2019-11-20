@@ -1,5 +1,12 @@
 #include "adt/list/double.h"
 
+
+#define PCI_COMMAND_STATUS_REG          0x04
+#define PCI_COMMAND_IO_ENABLE           0x00000001
+#define PCI_COMMAND_MEM_ENABLE          0x00000002
+#define PCI_COMMAND_MASTER_ENABLE   0x00000004
+
+
 #define PCI_CONFIG_IO 0xCF8
 #define PCI_DATA_IO 0xCFC
 struct pci_device {

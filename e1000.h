@@ -1,23 +1,35 @@
 #include "types.h"
 // Device registers
 #define REG_EEPROM      0x0014
-#define REG_MTA(i) ((uint32_t*) (d->mmio_base + 0x5200))[i]
+//#define REG_MTA(i) ((uint32_t*) (d->mmio_base + 0x5200))[i]
+#define REG_MTA 0x5200
 #define REG_TCTL  0x400
 #define REG_TDBAL 0x3800
 #define REG_TDBAH 0x3804
 #define REG_TDLEN 0x3808
 #define REG_TDH   0x3810
 #define REG_TDT   0x3818
+
+
 #define REG_TIPG  0x0410
+#define DEFAULT_82543_TIPG_IPGT_COPPER 8
+#define DEFAULT_82543_TIPG_IPGR1 8
+#define E1000_TIPG_IPGR1_SHIFT  10
+#define DEFAULT_82543_TIPG_IPGR2 6
+#define E1000_TIPG_IPGR2_SHIFT  20
+
 #define REG_ICR 0x00c0
 #define E1000_CTRL_RST 0x04000000 
 #define TCTL_EN   (1 << 1)
 #define TCTL_PSP  (1 << 3)
-
+#define REG_STATUS  0x8
 #define TCTL_COLD_DEFAULT (0x200 << 12)
 #define TCTL_CT_DEFAULT (0x0F << 4)
+
 // Interrupt mask
 #define REG_IMS 0xD0
+#define REG_IMC 0xD8
+#define IMS_IMC_CLEAR 0xFFFF
 // Recieve address low/high
 #define REG_RAL 0x5400
 #define REG_RAH 0x5404
@@ -30,16 +42,20 @@
 #define REG_RDLEN 0x2808
 #define REG_CTRL 0x0 
 #define REG_RCTL 0x100
+#define RCTL_RST            0x00000001	/* Software reset */
+#define RCTL_EN             0x00000002	/* enable */
+#define RCTL_SBP            0x00000004	/* store bad packet */
 
 // Auto Speed Detection Enable (bit 5)
 #define CTRL_ASDE 0x20
 // Set Link Up (Bit 6)
 #define CTRL_SLU 0x40
 /* Packet size is a max of 4k because we can't allocate bigger buffers */
-#define RCTL_BSIZE_4096     ((0x11 << 16) | (1 << 25))
+#define RCTL_BSIZE_4096 0x00030000
 #define RCTL_BSIZE_2048      (0x0 << 16)// default
-/* Enable recieving */
-#define RCTL_EN (1 << 1)
+#define RCTL_BSEX 0x02000000    /* Buffer size extension */
+
+
 /* Broadcast accept mode */
 #define RCTL_BAM (1 << 15)
 /* Strip the CRC from the ethernet packet */
@@ -47,9 +63,15 @@
 /* Enable promisc for unicast/multicast */
 #define RCTL_UPE (1 << 3)
 #define RCTL_MPE (1 << 4)
+#define RCTL_LBM_NO         0x00000000    /* no loopback mode */
 /* Enable long packets (16k) */
 #define RCTL_LPE (1 << 5)
+#define RCTL_VFE 0x00040000 /*vlan filter enable*/
+#define REG_RDTR 0x02820
+#define REG_RADV 0x0282C
 
+#define REG_ICS  0x00C8
+#define ICS_LSC  (1 << 2)
 // Interupt mask register bits.
 #define RXO   (1 << 6)  // Receiver FIFO Overrun.
 #define RXT0  (1 << 7)  // Receiver Timer Interrupt.
@@ -57,8 +79,16 @@
 #define RXSEQ (1 << 3)  // Receive sequence error.
 #define LSC   (1 << 2)  // Link status change
 #define TXQE  (1 << 1)  // Transmit Queue Empty
-/* This is probably very low but it's a complete guess
- */
+
+#define IMS_ENABLE_MASK ( RXO | RXT0 | RXDMT | RXSEQ | LSC | TXQE )
+
+#define E1000_WRITE_REG_ARRAY(d,reg,offset,value) \
+        ( d->write_cmd(d->mmio_base, reg + ((offset) << 2), value) )
+
+#define MANC     0x05820
+#define MANC_ARP_EN 0x00002000
+
+
 #define NUM_DESCRIPTORS 128
 /*
  * The set of registers that manage the tx_queue
@@ -142,14 +172,13 @@ struct e1000_dev {
 	uint32_t io_base;
 	struct pci_device* dev;
 	uint8_t mac[6];
+    void (*io_write_cmd) (uint32_t, uint32_t, uint32_t);
+    uint32_t (*io_read_cmd) (uint32_t, uint32_t);
     void (*write_cmd) (uint32_t, uint32_t, uint32_t);
     uint32_t (*read_cmd) (uint32_t, uint32_t);
 	uint16_t (*eeprom_read) (struct e1000_dev*, uint32_t);
 	uint32_t (*detect_eeprom) (struct e1000_dev*);
-	volatile uint8_t* tx_desc_base;
-	volatile uint8_t* rx_desc_base;
-
-
-
+    uint32_t rx_tail;
+   
 };
 
